@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import type { User, Session } from '@supabase/supabase-js';
 import DriveSidebar from "@/components/drive/DriveSidebar";
 import DriveHeader from "@/components/drive/DriveHeader";
 import FileGrid from "@/components/drive/FileGrid";
@@ -24,7 +24,7 @@ const Drive = () => {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         if (!session) {
           navigate("/auth");
