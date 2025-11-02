@@ -6,9 +6,18 @@ import DriveHeader from "@/components/drive/DriveHeader";
 import FileGrid from "@/components/drive/FileGrid";
 import UploadDialog from "@/components/drive/UploadDialog";
 import CreateFolderDialog from "@/components/drive/CreateFolderDialog";
+import BulkActionsToolbar from "@/components/drive/BulkActionsToolbar";
+import DetailsPanel from "@/components/drive/DetailsPanel";
 import { toast } from "sonner";
-import { ChevronRight, Home } from "lucide-react";
+import type { File } from "@/services/types";
+import { ChevronRight, Home, Grid3x3, List, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface BreadcrumbItem {
   id: string | null;
@@ -31,10 +40,19 @@ const Drive = () => {
     { id: null, name: "My Drive" }
   ]);
 
+  // New states for view mode, sorting, and multi-select
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'size'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [detailsFile, setDetailsFile] = useState<File | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [allFiles, setAllFiles] = useState<File[]>([]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    
+
     if (!token || !storedUser) {
       navigate("/auth");
       setLoading(false);
@@ -46,7 +64,7 @@ const Drive = () => {
       if (!userData.id || !userData.email) {
         throw new Error('Invalid user data');
       }
-      
+
       apiService.setToken(token);
       setUser(userData);
     } catch (error) {
@@ -71,11 +89,11 @@ const Drive = () => {
       if (!response.success) {
         throw new Error(response.error || 'Failed to sign out');
       }
-      
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       apiService.clearToken();
-      
+
       toast.success("Signed out successfully");
       navigate("/auth");
     } catch (error: any) {
@@ -85,7 +103,8 @@ const Drive = () => {
 
   const handleRefresh = async () => {
     setRefreshKey((prev) => prev + 1);
-  
+    setSelectedFiles(new Set()); // Clear selection on refresh
+
     try {
       const response = await apiService.getFiles();
       if (response.success && response.data) {
@@ -100,7 +119,8 @@ const Drive = () => {
 
   const handleFolderChange = (folderId: string | null, folderName?: string) => {
     setCurrentFolderId(folderId);
-    
+    setSelectedFiles(new Set()); // Clear selection when changing folders
+
     if (folderId === null) {
       // Going back to root
       setBreadcrumbs([{ id: null, name: "My Drive" }]);
@@ -114,6 +134,7 @@ const Drive = () => {
     const clickedItem = breadcrumbs[index];
     setCurrentFolderId(clickedItem.id);
     setBreadcrumbs(breadcrumbs.slice(0, index + 1));
+    setSelectedFiles(new Set()); // Clear selection
   };
 
   const handleBackClick = () => {
@@ -122,6 +143,99 @@ const Drive = () => {
       const parentFolder = newBreadcrumbs[newBreadcrumbs.length - 1];
       setCurrentFolderId(parentFolder.id);
       setBreadcrumbs(newBreadcrumbs);
+      setSelectedFiles(new Set()); // Clear selection
+    }
+  };
+
+  const handleFileSelect = (fileId: string, selected: boolean) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(fileId);
+      } else {
+        newSet.delete(fileId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const handleBulkStar = async () => {
+    try {
+      const promises = Array.from(selectedFiles).map(fileId =>
+        apiService.updateFile(fileId, { isStarred: true })
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedFiles.size} items starred`);
+      setSelectedFiles(new Set());
+      handleRefresh();
+    } catch (error: any) {
+      toast.error('Failed to star items');
+    }
+  };
+
+  const handleBulkMove = () => {
+    toast.info('Bulk move coming soon');
+  };
+
+  const handleBulkTrash = async () => {
+    try {
+      const promises = Array.from(selectedFiles).map(fileId =>
+        apiService.updateFile(fileId, { isTrashed: true })
+      );
+      await Promise.all(promises);
+      toast.success(`${selectedFiles.size} items moved to trash`);
+      setSelectedFiles(new Set());
+      handleRefresh();
+    } catch (error: any) {
+      toast.error('Failed to trash items');
+    }
+  };
+
+  const handleShowDetails = (file: File) => {
+    setDetailsFile(file);
+    setShowDetails(true);
+  };
+
+  const handleDetailsAction = async (action: 'star' | 'download' | 'share' | 'trash') => {
+    if (!detailsFile) return;
+
+    try {
+      switch (action) {
+        case 'star':
+          await apiService.updateFile(detailsFile.id, { isStarred: !detailsFile.isStarred });
+          toast.success(detailsFile.isStarred ? 'Removed from starred' : 'Added to starred');
+          handleRefresh();
+          setShowDetails(false);
+          break;
+        case 'download':
+          const response = await apiService.downloadFile(detailsFile.id);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = detailsFile.name;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          toast.success('Download started');
+          break;
+        case 'share':
+          toast.info('Share functionality coming soon');
+          break;
+        case 'trash':
+          await apiService.updateFile(detailsFile.id, { isTrashed: true });
+          toast.success('Moved to trash');
+          handleRefresh();
+          setShowDetails(false);
+          break;
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Action failed');
     }
   };
 
@@ -151,75 +265,170 @@ const Drive = () => {
         currentFolderId={currentFolderId}
         onFolderCreated={handleRefresh}
       />
-      <DriveSidebar 
-        currentView={currentView} 
+      <DriveSidebar
+        currentView={currentView}
         onViewChange={setCurrentView}
         onUploadClick={() => setUploadDialogOpen(true)}
         onCreateFolderClick={() => setCreateFolderDialogOpen(true)}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <DriveHeader 
+        <DriveHeader
           onSignOut={handleSignOut}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           userEmail={user.email || ""}
           recentFiles={recentFiles}
         />
-        
-        {/* Breadcrumb Navigation */}
-        <div className="border-b px-6 py-3 flex items-center gap-2">
-          {breadcrumbs.length > 1 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackClick}
-              className="mr-2"
-            >
-              ← Back
-            </Button>
-          )}
-          
-          <div className="flex items-center gap-2 flex-wrap">
-            {breadcrumbs.map((item, index) => (
-              <div key={item.id || 'root'} className="flex items-center gap-2">
-                {index === 0 ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleBreadcrumbClick(index)}
-                    className="flex items-center gap-1"
-                  >
-                    <Home className="w-4 h-4" />
-                    {item.name}
-                  </Button>
-                ) : (
-                  <>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleBreadcrumbClick(index)}
-                      className={index === breadcrumbs.length - 1 ? "font-semibold" : ""}
-                    >
-                      {item.name}
-                    </Button>
-                  </>
-                )}
+
+        {/* Breadcrumb and Controls */}
+        <div className="border-b px-6 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {breadcrumbs.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackClick}
+                  className="mr-2"
+                >
+                  ← Back
+                </Button>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {breadcrumbs.map((item, index) => (
+                  <div key={item.id || 'root'} className="flex items-center gap-2">
+                    {index === 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleBreadcrumbClick(index)}
+                        className="flex items-center gap-1"
+                      >
+                        <Home className="w-4 h-4" />
+                        {item.name}
+                      </Button>
+                    ) : (
+                      <>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleBreadcrumbClick(index)}
+                          className={index === breadcrumbs.length - 1 ? "font-semibold" : ""}
+                        >
+                          {item.name}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* View Controls */}
+            <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    {sortBy === 'name' && 'Name'}
+                    {sortBy === 'date' && 'Date'}
+                    {sortBy === 'size' && 'Size'}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSortBy('name')}>
+                    Sort by Name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('date')}>
+                    Sort by Date
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy('size')}>
+                    Sort by Size
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleSortOrder}>
+                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center border rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-r-none"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-l-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Selection Info */}
+          {selectedFiles.size > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{selectedFiles.size} item{selectedFiles.size > 1 ? 's' : ''} selected</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedFiles(new Set())}
+              >
+                Clear selection
+              </Button>
+            </div>
+          )}
         </div>
 
-        <main className="flex-1 overflow-y-auto p-6">
-          <FileGrid 
-            key={refreshKey}
-            currentView={currentView}
-            currentFolderId={currentFolderId}
-            onFolderChange={handleFolderChange}
-            searchQuery={searchQuery}
-          />
-        </main>
+        <div className="flex flex-1 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-6">
+            <FileGrid
+              key={refreshKey}
+              currentView={currentView}
+              currentFolderId={currentFolderId}
+              onFolderChange={handleFolderChange}
+              searchQuery={searchQuery}
+              viewMode={viewMode}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              selectedFiles={selectedFiles}
+              onFileSelect={handleFileSelect}
+              onShowDetails={handleShowDetails}
+              onFilesLoaded={setAllFiles}
+            />
+          </main>
+
+          {showDetails && (
+            <DetailsPanel
+              file={detailsFile}
+              onClose={() => setShowDetails(false)}
+              onStar={() => handleDetailsAction('star')}
+              onDownload={() => handleDetailsAction('download')}
+              onShare={() => handleDetailsAction('share')}
+              onTrash={() => handleDetailsAction('trash')}
+            />
+          )}
+        </div>
       </div>
+
+      <BulkActionsToolbar
+        selectedCount={selectedFiles.size}
+        onStar={handleBulkStar}
+        onMove={handleBulkMove}
+        onTrash={handleBulkTrash}
+        onClearSelection={() => setSelectedFiles(new Set())}
+      />
     </div>
   );
 };

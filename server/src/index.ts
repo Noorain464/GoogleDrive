@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import fileRoutes from "./routes/file.routes";
 import authRoutes from "./routes/auth.routes";
+import shareRoutes from "./routes/share.routes";
 import { supabase } from "./config/supabase";
 import path from "path";
 
@@ -35,6 +36,7 @@ testConnection();
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/files", shareRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

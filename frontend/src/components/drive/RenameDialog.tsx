@@ -3,8 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fileService } from "@/services/fileService";
-import { authService } from "@/services/authService";
+import { apiService } from "@/services/apiService";
 import { toast } from "sonner";
 
 interface RenameDialogProps {
@@ -28,7 +27,7 @@ const RenameDialog = ({ open, onOpenChange, itemId, itemType, currentName, onRen
 
   const handleRename = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newName.trim() || !itemId) {
       toast.error("Please enter a name");
       return;
@@ -42,18 +41,8 @@ const RenameDialog = ({ open, onOpenChange, itemId, itemType, currentName, onRen
     setRenaming(true);
 
     try {
-      const { error } = await fileService.renameFile(itemId, newName.trim());
-      if (error) throw error;
-
-      // Log activity
-      const { data: { user } } = await authService.getCurrentUser();
-      if (user) {
-        await fileService.logActivity({
-          user_id: user.id,
-          file_id: itemId,
-          action: "rename"
-        });
-      }
+      const response = await apiService.renameFile(itemId, newName.trim());
+      if (!response.success) throw new Error(response.error);
 
       toast.success(`${itemType === "file" ? "File" : "Folder"} renamed successfully`);
       onRenamed();

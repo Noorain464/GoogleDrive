@@ -119,11 +119,34 @@ router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
   res.json(response);
 });
 
+// Download a file
+router.get('/:id/download', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const fileId = req.params.id;
+
+  if (!userId) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized'
+    };
+    return res.status(401).json(response);
+  }
+
+  const response = await fileService.downloadFile(fileId, userId);
+
+  if (!response.success) {
+    return res.status(404).json(response);
+  }
+
+  // For now, send file metadata. In production, you'd stream the actual file
+  res.json(response);
+});
+
 // Delete a file or folder
 router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId;
   const fileId = req.params.id;
-  
+
   if (!userId) {
     const response: ApiResponse<never> = {
       success: false,
@@ -133,11 +156,11 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 
   const response = await fileService.deleteFile(fileId, userId);
-  
+
   if (!response.success) {
     return res.status(500).json(response);
   }
-  
+
   res.json(response);
 });
 

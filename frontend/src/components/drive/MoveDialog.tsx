@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Folder, Home, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiService } from "@/services/apiService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { File } from "@/services/types";
 
 interface FolderNode {
   id: string;
   name: string;
-  parent_folder_id: string | null;
+  parentId: string | null;
   children?: FolderNode[];
 }
 
@@ -20,7 +21,7 @@ interface MoveDialogProps {
   itemType: "file" | "folder";
   itemName: string;
   currentFolderId: string | null;
-  excludeFolderId?: string; // Folder being moved (to exclude it and its descendants)
+  excludeFolderId?: string;
   onMoveComplete: () => void;
 }
 
@@ -50,37 +51,33 @@ const MoveDialog = ({
   const loadFolders = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const response = await apiService.getFiles(null);
+      if (!response.success || !response.data) {
+        throw new Error(response.error);
+      }
 
-      // Get all folders except trashed ones
-      const { data: foldersData, error } = await supabase
-        .from("folders")
-        .select("id, name, parent_folder_id")
-        .eq("owner_id", user.id)
-        .eq("is_trashed", false);
-
-      if (error) throw error;
+      // Get all folders recursively
+      const allFolders = await getAllFolders(response.data);
 
       // Build folder tree
       const folderMap = new Map<string, FolderNode>();
       const rootFolders: FolderNode[] = [];
 
       // First pass: create all folder nodes
-      foldersData?.forEach((folder) => {
+      allFolders.forEach((folder) => {
         folderMap.set(folder.id, {
           id: folder.id,
           name: folder.name,
-          parent_folder_id: folder.parent_folder_id,
+          parentId: folder.parentId,
           children: [],
         });
       });
 
       // Second pass: build tree structure
-      foldersData?.forEach((folder) => {
+      allFolders.forEach((folder) => {
         const node = folderMap.get(folder.id)!;
-        if (folder.parent_folder_id) {
-          const parent = folderMap.get(folder.parent_folder_id);
+        if (folder.parentId) {
+          const parent = folderMap.get(folder.parentId);
           if (parent) {
             parent.children = parent.children || [];
             parent.children.push(node);
@@ -103,6 +100,21 @@ const MoveDialog = ({
     }
   };
 
+  const getAllFolders = async (files: File[]): Promise<File[]> => {
+    const folders = files.filter(f => f.type === 'folder' && !f.isTrashed);
+
+    // Get folders from all levels
+    for (const folder of folders) {
+      const response = await apiService.getFiles(folder.id);
+      if (response.success && response.data) {
+        const subFolders = await getAllFolders(response.data);
+        folders.push(...subFolders);
+      }
+    }
+
+    return folders;
+  };
+
   // Recursively filter out excluded folder and its descendants
   const filterExcludedFolders = (nodes: FolderNode[], excludeId: string): FolderNode[] => {
     if (!excludeId) return nodes;
@@ -113,36 +125,6 @@ const MoveDialog = ({
         ...node,
         children: node.children ? filterExcludedFolders(node.children, excludeId) : [],
       }));
-  };
-
-  // Check if movingFolderId would be a descendant of targetFolderId (circular reference check)
-  const wouldCreateCircularReference = async (movingFolderId: string, targetFolderId: string): Promise<boolean> => {
-    if (movingFolderId === targetFolderId) return true;
-
-    // Get all descendants of the folder being moved
-    const descendants = await getAllDescendants(movingFolderId);
-    return descendants.includes(targetFolderId);
-  };
-
-  // Get all descendant folder IDs recursively
-  const getAllDescendants = async (folderId: string): Promise<string[]> => {
-    const descendants: string[] = [];
-    
-    const { data: children } = await supabase
-      .from("folders")
-      .select("id")
-      .eq("parent_folder_id", folderId)
-      .eq("is_trashed", false);
-
-    if (children) {
-      for (const child of children) {
-        descendants.push(child.id);
-        const childDescendants = await getAllDescendants(child.id);
-        descendants.push(...childDescendants);
-      }
-    }
-
-    return descendants;
   };
 
   const toggleFolder = (folderId: string) => {
@@ -212,36 +194,8 @@ const MoveDialog = ({
     setMoving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // For folders: check if moving into own descendant (would create circular reference)
-      if (itemType === "folder" && selectedFolderId) {
-        const wouldCreateCircular = await wouldCreateCircularReference(itemId, selectedFolderId);
-        if (wouldCreateCircular) {
-          toast.error("Cannot move folder into its own subfolder");
-          setMoving(false);
-          return;
-        }
-      }
-
-      const table = itemType === "file" ? "files" : "folders";
-      const folderField = itemType === "file" ? "folder_id" : "parent_folder_id";
-
-      const { error } = await supabase
-        .from(table)
-        .update({ [folderField]: selectedFolderId })
-        .eq("id", itemId);
-
-      if (error) throw error;
-
-      // Log activity
-      await supabase.from("activities").insert({
-        user_id: user.id,
-        action_type: "move",
-        item_type: itemType,
-        item_name: itemName,
-      });
+      const response = await apiService.updateFile(itemId, { parentId: selectedFolderId });
+      if (!response.success) throw new Error(response.error);
 
       toast.success(`${itemType === "file" ? "File" : "Folder"} moved successfully`);
       onMoveComplete();
@@ -314,4 +268,3 @@ const MoveDialog = ({
 };
 
 export default MoveDialog;
-

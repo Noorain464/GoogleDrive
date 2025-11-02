@@ -242,6 +242,30 @@ export class FileService {
     }
   }
 
+  async downloadFile(fileId: string, userId: string): Promise<ApiResponse<FileMetadata>> {
+    try {
+      // Get file metadata
+      const { data: file, error } = await supabase
+        .from('files')
+        .select('*')
+        .eq('id', fileId)
+        .eq('owner_id', userId)
+        .single();
+
+      if (error || !file) throw new Error('File not found');
+
+      return {
+        success: true,
+        data: this.transformDatabaseFile(file)
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: this.extractErrorMessage(error)
+      };
+    }
+  }
+
   async searchFiles(userId: string, query: string): Promise<ApiResponse<FileMetadata[]>> {
     try {
       const { data: filesData, error: filesError } = await supabase

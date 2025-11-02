@@ -81,12 +81,33 @@ class ApiService {
     return this.handleResponse<File>(response);
   }
 
+  async updateFile(fileId: string, updates: Partial<{ name: string; isStarred: boolean; isTrashed: boolean; parentId: string | null }>): Promise<ApiResponse<File>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates)
+    });
+    return this.handleResponse<File>(response);
+  }
+
   async deleteFile(fileId: string): Promise<ApiResponse<void>> {
     const response = await fetch(`${API_URL}/api/files/${fileId}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     });
     return this.handleResponse<void>(response);
+  }
+
+  async downloadFile(fileId: string): Promise<Response> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}/download`, {
+      headers: this.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download file');
+    }
+
+    return response;
   }
 
   async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
@@ -119,12 +140,62 @@ class ApiService {
       headers: this.getHeaders()
     });
     const apiResponse = await this.handleResponse<{ message: string }>(response);
-    
+
     if (apiResponse.success) {
       this.clearToken();
     }
-    
+
     return apiResponse;
+  }
+
+  // Sharing methods
+  async shareFile(fileId: string, email: string, permission: 'view' | 'edit'): Promise<ApiResponse<any>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}/share`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ email, permission })
+    });
+    return this.handleResponse<any>(response);
+  }
+
+  async unshareFile(fileId: string, userId: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}/share/${userId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<void>(response);
+  }
+
+  async updateSharePermission(fileId: string, userId: string, permission: 'view' | 'edit'): Promise<ApiResponse<any>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}/share/${userId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ permission })
+    });
+    return this.handleResponse<any>(response);
+  }
+
+  async getShares(fileId: string): Promise<ApiResponse<any[]>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}/shares`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<any[]>(response);
+  }
+
+  async updateFileLinkSharing(fileId: string, enabled: boolean): Promise<ApiResponse<File>> {
+    const response = await fetch(`${API_URL}/api/files/${fileId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ isPublic: enabled })
+    });
+    return this.handleResponse<File>(response);
+  }
+
+  async getSharedFiles(): Promise<ApiResponse<File[]>> {
+    const response = await fetch(`${API_URL}/api/files/shared`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<File[]>(response);
   }
 }
 
