@@ -1,50 +1,48 @@
--- Create files table
-CREATE TABLE files (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name VARCHAR NOT NULL,
-  type VARCHAR NOT NULL CHECK (type IN ('file', 'folder')),
-  mime_type VARCHAR,
-  size BIGINT,
-  parent_id UUID REFERENCES files(id) ON DELETE CASCADE,
-  owner_id UUID NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Files, Folders and Shares tables (user-provided schema)
+-- Note: this migration creates `files`, `folders` and `shares` tables
+
+CREATE TABLE public.folders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  parent_folder_id uuid,
+  owner_id uuid NOT NULL,
+  is_starred boolean DEFAULT false,
+  is_trashed boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT folders_pkey PRIMARY KEY (id)
 );
 
--- Add RLS (Row Level Security) policies
-ALTER TABLE files ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.files (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  folder_id uuid,
+  owner_id uuid NOT NULL,
+  file_path text NOT NULL,
+  file_type text,
+  file_size bigint,
+  mime_type text,
+  is_starred boolean DEFAULT false,
+  is_trashed boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT files_pkey PRIMARY KEY (id),
+  CONSTRAINT files_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.folders(id),
+  CONSTRAINT files_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id)
+);
 
--- Policy to allow users to select their own files
-CREATE POLICY "Users can view their own files"
-  ON files FOR SELECT
-  USING (auth.uid() = owner_id);
+CREATE TABLE public.shares (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  file_id uuid,
+  folder_id uuid,
+  shared_with_user_id uuid NOT NULL,
+  shared_by_user_id uuid NOT NULL,
+  permission text NOT NULL CHECK (permission = ANY (ARRAY['view'::text, 'edit'::text])),
+  created_at timestamp without time zone DEFAULT now(),
+  CONSTRAINT shares_pkey PRIMARY KEY (id),
+  CONSTRAINT shares_file_id_fkey FOREIGN KEY (file_id) REFERENCES public.files(id),
+  CONSTRAINT shares_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.folders(id),
+  CONSTRAINT shares_shared_with_user_id_fkey FOREIGN KEY (shared_with_user_id) REFERENCES auth.users(id),
+  CONSTRAINT shares_shared_by_user_id_fkey FOREIGN KEY (shared_by_user_id) REFERENCES auth.users(id)
+);
 
--- Policy to allow users to insert their own files
-CREATE POLICY "Users can insert their own files"
-  ON files FOR INSERT
-  WITH CHECK (auth.uid() = owner_id);
-
--- Policy to allow users to update their own files
-CREATE POLICY "Users can update their own files"
-  ON files FOR UPDATE
-  USING (auth.uid() = owner_id);
-
--- Policy to allow users to delete their own files
-CREATE POLICY "Users can delete their own files"
-  ON files FOR DELETE
-  USING (auth.uid() = owner_id);
-
--- Create function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Create trigger to automatically update updated_at
-CREATE TRIGGER update_files_updated_at
-    BEFORE UPDATE ON files
-    FOR EACH ROW
-    EXECUTE PROCEDURE update_updated_at_column();

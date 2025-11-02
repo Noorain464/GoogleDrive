@@ -9,7 +9,11 @@ export interface FileData {
   type: 'file' | 'folder';
   mimeType?: string;
   size?: number;
-  parentId?: string;
+  parentId?: string; // maps to files.folder_id or folders.parent_folder_id
+  filePath?: string;
+  fileType?: string;
+  isStarred?: boolean;
+  isTrashed?: boolean;
 }
 
 export interface FileMetadata {
@@ -18,10 +22,14 @@ export interface FileMetadata {
   type: 'file' | 'folder';
   mimeType?: string;
   size?: number;
-  parentId: string | null;
+  parentId: string | null; // folder id for files, parent folder id for folders
   ownerId: string;
   createdAt: string;
   updatedAt: string;
+  filePath?: string;
+  fileType?: string;
+  isStarred?: boolean;
+  isTrashed?: boolean;
 }
 
 export interface User {

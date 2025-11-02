@@ -59,9 +59,11 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   });
   
   if (!response.success) {
+    console.error('FileService.createFile failed:', response.error);
     return res.status(500).json(response);
   }
   
+  console.log('FileService.createFile success:', response.data?.id || response.data?.name);
   res.json(response);
 });
 
