@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { FileIcon, FolderIcon } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { fileService } from '@/services/fileService';
+import type { FileItem } from '@/services/types';
 
-interface FileItem {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  created_at: string;
-  parent_id: string | null;
-}
+
 
 interface FileGridProps {
   currentView: string;
@@ -26,19 +21,11 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
     const fetchFiles = async () => {
       try {
         setLoading(true);
-        let query = supabase.from('files').select('*');
-
-        if (currentFolderId) {
-          query = query.eq('parent_id', currentFolderId);
-        } else if (currentView === 'my-drive') {
-          query = query.is('parent_id', null);
-        }
-
-        if (searchQuery) {
-          query = query.ilike('name', `%${searchQuery}%`);
-        }
-
-        const { data, error } = await query;
+        const { data, error } = await fileService.getFiles({
+          currentFolderId,
+          currentView,
+          searchQuery
+        });
 
         if (error) {
           throw error;
