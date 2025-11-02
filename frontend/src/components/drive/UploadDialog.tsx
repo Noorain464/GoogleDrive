@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, File, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiService } from "@/services/apiService";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 
@@ -44,43 +44,15 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
     setUploadProgress(0);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
       const totalFiles = selectedFiles.length;
       let uploadedCount = 0;
 
       for (const file of selectedFiles) {
-        // Upload to storage
-        const filePath = `${user.id}/${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("drive-files")
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        // Create database record
-        const { error: dbError } = await supabase
-          .from("files")
-          .insert({
-            name: file.name,
-            folder_id: currentFolderId,
-            owner_id: user.id,
-            file_path: filePath,
-            file_type: file.type.split('/')[0] || 'file',
-            file_size: file.size,
-            mime_type: file.type,
-          });
-
-        if (dbError) throw dbError;
-
-        // Log activity
-        await supabase.from("activities").insert({
-          user_id: user.id,
-          action_type: "upload",
-          item_type: "file",
-          item_name: file.name,
-        });
+        const response = await apiService.uploadFile(file, currentFolderId);
+        
+        if ('error' in response) {
+          throw new Error(response.error);
+        }
 
         uploadedCount++;
         setUploadProgress((uploadedCount / totalFiles) * 100);

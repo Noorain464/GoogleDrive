@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { apiService } from "@/services/apiService";
 import { toast } from "sonner";
 
 interface CreateFolderDialogProps {
@@ -28,24 +28,11 @@ const CreateFolderDialog = ({ open, onOpenChange, currentFolderId, onFolderCreat
     setCreating(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const response = await apiService.createFolder(folderName.trim(), currentFolderId);
 
-      const { error } = await supabase.from("folders").insert({
-        name: folderName.trim(),
-        parent_folder_id: currentFolderId,
-        owner_id: user.id,
-      });
-
-      if (error) throw error;
-
-      // Log activity
-      await supabase.from("activities").insert({
-        user_id: user.id,
-        action_type: "create",
-        item_type: "folder",
-        item_name: folderName.trim(),
-      });
+      if ('error' in response) {
+        throw new Error(response.error);
+      }
 
       toast.success("Folder created successfully");
       setFolderName("");

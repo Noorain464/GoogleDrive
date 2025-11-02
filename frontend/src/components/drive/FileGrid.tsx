@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { FileIcon, FolderIcon } from 'lucide-react';
-import { fileService } from '@/services/fileService';
+import { apiService } from '@/services/apiService';
 import type { File } from '@/services/types';
 
 
@@ -21,19 +21,16 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
     const fetchFiles = async () => {
       try {
         setLoading(true);
-        const { data, error } = await fileService.getFiles({
-          currentFolderId,
-          currentView,
-          searchQuery
-        });
-
-        if (error) {
-          throw error;
+        const response = await apiService.getFiles(currentFolderId);
+        
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to fetch files');
         }
 
-        setFiles(data || []);
+        setFiles(response.data);
       } catch (error) {
         console.error('Error fetching files:', error);
+        setFiles([]);
       } finally {
         setLoading(false);
       }
@@ -76,7 +73,7 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
             <div>
               <h3 className="font-medium">{file.name}</h3>
               <p className="text-sm text-muted-foreground">
-                {new Date(file.created_at).toLocaleDateString()}
+                {new Date(file.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>

@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
 import fileRoutes from "./routes/file.routes";
+import authRoutes from "./routes/auth.routes";
 import { supabase } from "./config/supabase";
+import path from "path";
 
 const app = express();
 
@@ -11,6 +13,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Test Supabase connection
 const testConnection = async () => {
@@ -25,7 +30,14 @@ const testConnection = async () => {
 testConnection();
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/files", fileRoutes);
+
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something broke!' });
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;

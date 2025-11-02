@@ -1,102 +1,130 @@
+import type { ApiResponse, File, User, AuthResponse } from './types';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 class ApiService {
-  constructor() {}
+  private token: string | null = null;
 
-  // File operations
-  async getFiles(parentId: string | null = null) {
-    const response = await fetch(`${API_URL}/api/files?parentId=${parentId || ''}`, {
-      credentials: 'include'
-    });
-    return await response.json();
+  setToken(token: string) {
+    this.token = token;
   }
 
-  async createFolder(name: string, parentId: string | null = null) {
+  clearToken() {
+    this.token = null;
+  }
+
+  private getHeaders(isFormData = false): Record<string, string> {
+    const headers: Record<string, string> = {};
+
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    return headers;
+  }
+
+  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || 'An error occurred'
+      };
+    }
+    
+    return data as ApiResponse<T>;
+  }
+  async getFiles(parentId: string | null = null): Promise<ApiResponse<File[]>> {
+    const response = await fetch(`${API_URL}/api/files?parentId=${parentId || ''}`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse<File[]>(response);
+  }
+
+  async createFolder(name: string, parentId: string | null = null): Promise<ApiResponse<File>> {
     const response = await fetch(`${API_URL}/api/files`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
+      headers: this.getHeaders(),
       body: JSON.stringify({ name, type: 'folder', parentId })
     });
-    return await response.json();
+    return this.handleResponse<File>(response);
   }
 
-  async uploadFile(file: File, parentId: string | null = null) {
+  async uploadFile(file: Blob, parentId: string | null = null): Promise<ApiResponse<File>> {
     const formData = new FormData();
     formData.append('file', file);
     if (parentId) formData.append('parentId', parentId);
 
+    const headers = this.getHeaders(true);
+
     const response = await fetch(`${API_URL}/api/files/upload`, {
       method: 'POST',
-      credentials: 'include',
+      headers,
       body: formData
     });
-    return await response.json();
+    return this.handleResponse<File>(response);
   }
 
-  async renameFile(fileId: string, newName: string) {
+  async renameFile(fileId: string, newName: string): Promise<ApiResponse<File>> {
     const response = await fetch(`${API_URL}/api/files/${fileId}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
+      headers: this.getHeaders(),
       body: JSON.stringify({ name: newName })
     });
-    return await response.json();
+    return this.handleResponse<File>(response);
   }
 
-  async deleteFile(fileId: string) {
+  async deleteFile(fileId: string): Promise<ApiResponse<void>> {
     const response = await fetch(`${API_URL}/api/files/${fileId}`, {
       method: 'DELETE',
-      credentials: 'include'
+      headers: this.getHeaders()
     });
-    return await response.json();
+    return this.handleResponse<void>(response);
   }
 
-  // Authentication
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     const response = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
+      headers: this.getHeaders(),
       body: JSON.stringify({ email, password })
     });
-    return await response.json();
+    const apiResponse = await this.handleResponse<AuthResponse>(response);
+    
+    if (apiResponse.success && apiResponse.data?.token) {
+      this.setToken(apiResponse.data.token);
+    }
+    
+    return apiResponse;
   }
 
-  async register(email: string, password: string) {
+  async register(email: string, password: string): Promise<ApiResponse<AuthResponse>> {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
+      headers: this.getHeaders(),
       body: JSON.stringify({ email, password })
     });
-    return await response.json();
+    return this.handleResponse<AuthResponse>(response);
   }
 
-  async logout() {
+  async logout(): Promise<ApiResponse<{ message: string }>> {
     const response = await fetch(`${API_URL}/api/auth/logout`, {
       method: 'POST',
-      credentials: 'include'
+      headers: this.getHeaders()
     });
-    return await response.json();
-  }
-
-  // Placeholder for future real-time features if needed
-  async subscribeToFileChanges(_fileId: string, _callback: (data: any) => void) {
-    // Implementation will be added when real-time features are needed
-  }
-
-  async unsubscribeFromFileChanges(_fileId: string) {
-    // Implementation will be added when real-time features are needed
+    const apiResponse = await this.handleResponse<{ message: string }>(response);
+    
+    if (apiResponse.success) {
+      this.clearToken();
+    }
+    
+    return apiResponse;
   }
 }
+
 
 export const apiService = new ApiService();

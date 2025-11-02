@@ -9,9 +9,7 @@ export interface FileData {
   type: 'file' | 'folder';
   mimeType?: string;
   size?: number;
-  path?: string;
   parentId?: string;
-  storageKey?: string;
 }
 
 export interface FileMetadata {
@@ -20,16 +18,25 @@ export interface FileMetadata {
   type: 'file' | 'folder';
   mimeType?: string;
   size?: number;
-  path?: string;
-  parentId?: string;
+  parentId: string | null;
   ownerId: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ActivityData {
-  userId: string;
-  fileId: string;
-  action: 'create' | 'update' | 'delete' | 'rename' | 'move';
-  details?: Record<string, any>;
+export interface User {
+  id: string;
+  email: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface AuthResponse {
+  user?: User;
+  token?: string;
+  error?: string;
 }
