@@ -16,18 +16,39 @@ interface FileGridProps {
 const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFolderChange, searchQuery }) => {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchFiles = async () => {
       try {
         setLoading(true);
         const response = await apiService.getFiles(currentFolderId);
-        
+
         if (!response.success || !response.data) {
           throw new Error(response.error || 'Failed to fetch files');
         }
 
-        setFiles(response.data);
+        let fetchedFiles = response.data;
+
+        if (currentView === 'starred') {
+          fetchedFiles = fetchedFiles.filter((file: File) => file.isStarred)
+        // } else if (currentView === 'shared') {
+        //   fetchedFiles = fetchedFiles.filter((file: File) => file.is_shared);
+        } else if (currentView === 'trash') {
+          fetchedFiles = fetchedFiles.filter((file: File) => file.isTrashed); 
+        } else {
+          // Default: show normal files (not trashed)
+          fetchedFiles = fetchedFiles.filter((file: File) => !file.isTrashed);
+        }
+
+        // ✅ Apply search filter
+        if (searchQuery.trim()) {
+          const lower = searchQuery.toLowerCase();
+          fetchedFiles = fetchedFiles.filter((file: File) =>
+            file.name.toLowerCase().includes(lower)
+          );
+        }
+
+        setFiles(fetchedFiles);
       } catch (error) {
         console.error('Error fetching files:', error);
         setFiles([]);
@@ -57,9 +78,7 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
   };
 
   return (
-    <div
-      className={`grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 min-h-[300px]`}
-    >
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 min-h-[300px]">
       {files.map((file) => (
         <Card
           key={file.id}

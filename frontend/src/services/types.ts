@@ -7,6 +7,8 @@ export interface File {
   size?: number;
   createdAt: string;
   updatedAt: string;
+  isStarred: boolean;
+  isTrashed: boolean;
 }
 
 export interface ApiResponse<T> {
