@@ -17,6 +17,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
+import { apiService } from "@/services/apiService";
+import type { File as DriveFile } from "@/services/types";
 
 interface DriveSidebarProps {
   currentView: string;
@@ -38,6 +41,38 @@ const DriveSidebar = ({
     { id: "shared", label: "Shared with me", icon: Users },
     { id: "trash", label: "Trash", icon: Trash2 },
   ];
+
+  const [usedStorage, setUsedStorage] = useState<number>(0);
+  const totalStorage = 15 * 1024 * 1024 * 1024; // 15 GB in bytes
+
+  useEffect(() => {
+    const fetchStorage = async () => {
+      try {
+        const response = await apiService.getFiles(null);
+        if (response.success && response.data) {
+          const files = response.data as DriveFile[];
+          const totalUsed = files
+            .filter((f) => f.type === "file" && !f.isTrashed)
+            .reduce((acc, f) => acc + (f.size || 0), 0);
+          setUsedStorage(totalUsed);
+        }
+      } catch (err) {
+        console.error("Error fetching storage usage:", err);
+      }
+    };
+    fetchStorage();
+  }, []);
+
+  const usedPercentage = Math.min(
+    (usedStorage / totalStorage) * 100,
+    100
+  ).toFixed(2);
+
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return "0 GB";
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(2)} GB`;
+  };
 
   return (
     <aside className="w-64 bg-white border-r flex flex-col text-gray-800 shadow-sm">
@@ -121,9 +156,14 @@ const DriveSidebar = ({
       <div className="p-5 border-t mt-auto">
         <div>
           <p className="text-sm font-medium mb-1">Storage</p>
-          <p className="text-xs text-gray-500 mb-2">0 GB of 15 GB used</p>
+          <p className="text-xs text-gray-500 mb-2">
+            {formatSize(usedStorage)} of {formatSize(totalStorage)} used
+          </p>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-600 w-[30%] transition-all" />
+            <div
+              className="h-full bg-blue-600 transition-all duration-500"
+              style={{ width: `${usedPercentage}%` }}
+            />
           </div>
         </div>
       </div>
