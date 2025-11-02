@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { FileIcon, FolderIcon } from 'lucide-react';
 import { fileService } from '@/services/fileService';
-import type { FileItem } from '@/services/types';
+import type { File } from '@/services/types';
 
 
 
@@ -14,7 +14,7 @@ interface FileGridProps {
 }
 
 const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFolderChange, searchQuery }) => {
-  const [files, setFiles] = useState<FileItem[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
     );
   }
 
-  const handleItemClick = (file: FileItem) => {
+  const handleItemClick = (file: File) => {
     if (file.type === 'folder') {
       onFolderChange(file.id);
     } else {

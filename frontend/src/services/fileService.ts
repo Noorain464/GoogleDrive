@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { FileItem, Activity } from './types';
+import type { File, Activity } from './types';
 
 export const fileService = {
   async getFiles(options: {

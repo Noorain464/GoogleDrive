@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { User } from './types';
 
 export const authService = {
   async signUp(email: string, password: string) {
