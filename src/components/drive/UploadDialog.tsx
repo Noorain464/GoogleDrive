@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, File, X } from "lucide-react";
@@ -17,7 +17,16 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset drag state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setIsDragging(false);
+      setSelectedFiles([]);
+    }
+  }, [open]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -28,6 +37,40 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set isDragging to false if we're leaving the drop zone area
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Indicate that this is a valid drop target
+    e.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      const files = Array.from(droppedFiles);
+      setSelectedFiles(prev => [...prev, ...files]);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -111,12 +154,26 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
 
         <div className="space-y-4">
           <div
-            className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
+              isDragging
+                ? "border-primary bg-primary/5 scale-105"
+                : "border-border hover:border-primary"
+            }`}
             onClick={() => fileInputRef.current?.click()}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
           >
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm font-medium mb-1">Click to select files</p>
-            <p className="text-xs text-muted-foreground">or drag and drop files here</p>
+            <Upload className={`h-12 w-12 mx-auto mb-2 transition-colors ${
+              isDragging ? "text-primary" : "text-muted-foreground"
+            }`} />
+            <p className="text-sm font-medium mb-1">
+              {isDragging ? "Drop files here" : "Click to select files"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              or drag and drop files here
+            </p>
             <input
               ref={fileInputRef}
               type="file"
