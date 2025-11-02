@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 import DriveSidebar from "@/components/drive/DriveSidebar";
 import DriveHeader from "@/components/drive/DriveHeader";
 import FileGrid from "@/components/drive/FileGrid";
