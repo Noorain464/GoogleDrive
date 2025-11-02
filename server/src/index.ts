@@ -22,6 +22,9 @@ const testConnection = async () => {
   try {
     await supabase.from('files').select('count', { count: 'exact' });
     console.log('Connected to Supabase successfully');
+    const { data: { user } } = await supabase.auth.getUser()
+console.log(user)
+
   } catch (error: any) {
     console.error('Error connecting to Supabase:', error);
   }
