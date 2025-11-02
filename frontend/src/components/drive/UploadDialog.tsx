@@ -114,6 +114,36 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files) {
+      const files = Array.from(e.dataTransfer.files);
+      setSelectedFiles(prev => [...prev, ...files]);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -126,10 +156,8 @@ const UploadDialog = ({ open, onOpenChange, currentFolderId, onUploadComplete }:
 
         <div className="space-y-4">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-              isDragging
-                ? "border-primary bg-primary/5 scale-105"
-                : "border-border hover:border-primary"
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              isDragging ? 'border-primary bg-primary/10' : 'hover:border-primary'
             }`}
             onClick={() => fileInputRef.current?.click()}
             onDragEnter={handleDragEnter}

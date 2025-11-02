@@ -33,6 +33,7 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
     itemName: string;
   }>({ open: false, itemId: null, itemType: "file", itemName: "" });
 
+  
   useEffect(() => {
     const fetchFiles = async () => {
       try {
@@ -275,7 +276,9 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+    <div
+      className={`grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4 min-h-[300px]`}
+    >
       {files.map((file) => (
         <Card
           key={file.id}

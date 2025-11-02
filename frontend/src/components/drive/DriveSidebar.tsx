@@ -1,4 +1,13 @@
-import { Cloud, HardDrive, Star, Clock, Trash2, Users, Upload, FolderPlus } from "lucide-react";
+import {
+  HardDrive,
+  Star,
+  Clock,
+  Trash2,
+  Users,
+  Upload,
+  FolderPlus,
+  Plus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -16,7 +25,12 @@ interface DriveSidebarProps {
   onCreateFolderClick: () => void;
 }
 
-const DriveSidebar = ({ currentView, onViewChange, onUploadClick, onCreateFolderClick }: DriveSidebarProps) => {
+const DriveSidebar = ({
+  currentView,
+  onViewChange,
+  onUploadClick,
+  onCreateFolderClick,
+}: DriveSidebarProps) => {
   const navigationItems = [
     { id: "my-drive", label: "My Drive", icon: HardDrive },
     { id: "recent", label: "Recent", icon: Clock },
@@ -26,69 +40,90 @@ const DriveSidebar = ({ currentView, onViewChange, onUploadClick, onCreateFolder
   ];
 
   return (
-    <aside className="w-64 border-r bg-sidebar flex flex-col">
-      <div className="p-4">
+    <aside className="w-64 bg-white border-r flex flex-col text-gray-800 shadow-sm">
+      {/* Logo + New Button */}
+      <div className="p-5">
         <div className="flex items-center gap-2 mb-6">
-          <div className="rounded-lg bg-primary p-2">
-            <Cloud className="h-5 w-5 text-primary-foreground" />
+          {/* ✅ Replaced Cloud icon with your Drive icon */}
+          <div className="flex items-center justify-center rounded-md p-2">
+            <img src="/drive-icon.png" alt="Drive Icon" className="h-5 w-5" />
           </div>
-          <span className="text-xl font-semibold">CloudDrive</span>
+          <span className="text-lg font-semibold text-gray-800 tracking-tight">
+            Drive
+          </span>
         </div>
+
+        {/* "New" Dropdown Button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="w-full justify-start" size="lg">
-              <Cloud className="mr-2 h-5 w-5" />
+            <Button
+              className="w-full justify-start bg-white text-gray-800 font-medium py-5 rounded-xl shadow-md border hover:bg-gray-50 transition-all duration-200"
+              size="lg"
+            >
+              <Plus className="mr-2 h-5  text-blue-600" />
               New
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem onClick={onCreateFolderClick}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              New Folder
+          <DropdownMenuContent align="start" className="w-48 mt-1 shadow-lg">
+            <DropdownMenuItem
+              onClick={onCreateFolderClick}
+              className="cursor-pointer hover:bg-gray-100"
+            >
+              <FolderPlus className="mr-2 h-4 w-4 text-gray-700" />
+              <span>New Folder</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onUploadClick}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Files
+            <DropdownMenuItem
+              onClick={onUploadClick}
+              className="cursor-pointer hover:bg-gray-100"
+            >
+              <Upload className="mr-2 h-4 w-4 text-gray-700" />
+              <span>Upload Files</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
-      <Separator />
-      
-      <nav className="flex-1 p-2">
-        <ul className="space-y-1">
+
+      <Separator className="my-2" />
+
+      {/* Navigation Menu */}
+      <nav className="flex-1 px-3">
+        <ul className="space-y-1 mt-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
-            
+
             return (
               <li key={item.id}>
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start",
-                    isActive && "bg-accent"
-                  )}
+                <button
                   onClick={() => onViewChange(item.id)}
+                  className={cn(
+                    "flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150",
+                    isActive
+                      ? "bg-blue-100 text-blue-700 font-semibold"
+                      : "text-gray-700 hover:bg-gray-100"
+                  )}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon
+                    className={cn(
+                      "mr-3 h-5 w-5",
+                      isActive ? "text-blue-600" : "text-gray-600"
+                    )}
+                  />
                   {item.label}
-                </Button>
+                </button>
               </li>
             );
           })}
         </ul>
       </nav>
-      
-      <div className="p-4 border-t">
-        <div className="rounded-lg bg-secondary p-3">
-          <div className="text-sm font-medium mb-1">Storage</div>
-          <div className="text-xs text-muted-foreground mb-2">
-            0 GB of 15 GB used
-          </div>
-          <div className="h-2 rounded-full bg-background overflow-hidden">
-            <div className="h-full bg-primary w-0 transition-all" />
+
+      {/* Storage Section */}
+      <div className="p-5 border-t mt-auto">
+        <div>
+          <p className="text-sm font-medium mb-1">Storage</p>
+          <p className="text-xs text-gray-500 mb-2">0 GB of 15 GB used</p>
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-600 w-[30%] transition-all" />
           </div>
         </div>
       </div>
