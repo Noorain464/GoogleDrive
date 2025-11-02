@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "@/services/authService";
+import { apiService } from "@/services/apiService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,8 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await authService.signUp(email, password);      if (error) throw error;
+      const response = await apiService.register(email, password);
+      if ('error' in response) throw response.error;
 
       toast.success("Account created successfully! You can now sign in.");
       setEmail("");
@@ -39,12 +40,18 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await authService.signIn(email, password);
+      const response = await apiService.login(email, password);
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.error || "Failed to sign in");
+      }
 
-      if (error) throw error;
+      // Store user info in localStorage
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.data.token || '');
 
       toast.success("Signed in successfully!");
-      navigate("/");
+      navigate("/drive");
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {

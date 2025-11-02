@@ -1,112 +1,144 @@
 import { Router, Request, Response } from 'express';
 import { FileService } from '../services/FileService';
 import multer from 'multer';
+import { authMiddleware } from '../middleware/auth.middleware';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware';
+import type { ApiResponse, FileMetadata } from '../types';
 
 const router = Router();
 const fileService = new FileService();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Get files in a folder
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const userId = req.header('user-id'); // In production, get this from auth middleware
-    const parentId = req.query.parentId as string | null;
-    const view = req.query.view as string || 'my-drive';
-    const searchQuery = req.query.search as string | undefined;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+router.use(authMiddleware);
 
-    const files = await fileService.getFiles(userId, {
-      currentFolderId: parentId,
-      currentView: view,
-      searchQuery
-    });
-    res.json(files);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+// Get files in a folder
+router.get('/', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const parentId = req.query.parentId as string | null;
+  const view = req.query.view as string || 'my-drive';
+  const searchQuery = req.query.search as string | undefined;
+  
+  if (!userId) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized'
+    };
+    return res.status(401).json(response);
   }
+
+  const response = await fileService.getFiles(userId, {
+    currentFolderId: parentId,
+    currentView: view,
+    searchQuery
+  });
+  
+  if (!response.success) {
+    return res.status(500).json(response);
+  }
+  
+  res.json(response);
 });
 
 // Create a folder
-router.post('/', async (req, res) => {
-  try {
-    const userId = req.header('user-id'); // In production, get this from auth middleware
-    const { name, type, parentId } = req.body;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const file = await fileService.createFile(userId, {
-      name,
-      type,
-      parentId
-    });
-    res.json(file);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const { name, type, parentId } = req.body;
+  
+  if (!userId) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized'
+    };
+    return res.status(401).json(response);
   }
+
+  const response = await fileService.createFile(userId, {
+    name,
+    type,
+    parentId
+  });
+  
+  if (!response.success) {
+    console.error('FileService.createFile failed:', response.error);
+    return res.status(500).json(response);
+  }
+  
+  console.log('FileService.createFile success:', response.data?.id || response.data?.name);
+  res.json(response);
 });
 
 // Upload a file
-router.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    const userId = req.header('user-id'); // In production, get this from auth middleware
-    const parentId = req.body.parentId;
-    const file = req.file;
-    
-    if (!userId || !file) {
-      return res.status(401).json({ error: 'Unauthorized or no file provided' });
-    }
-
-    const fileData = await fileService.createFile(userId, {
-      name: file.originalname,
-      type: 'file',
-      mimeType: file.mimetype,
-      size: file.size,
-      parentId
-    });
-    res.json(fileData);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+router.post('/upload', upload.single('file'), async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const parentId = req.body.parentId;
+  const file = req.file;
+  
+  if (!userId || !file) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized or no file provided'
+    };
+    return res.status(401).json(response);
   }
+
+  const response = await fileService.createFile(userId, {
+    name: file.originalname,
+    type: 'file',
+    mimeType: file.mimetype,
+    size: file.size,
+    parentId
+  });
+  
+  if (!response.success) {
+    return res.status(500).json(response);
+  }
+  
+  res.json(response);
 });
 
 // Update a file or folder
-router.patch('/:id', async (req, res) => {
-  try {
-    const userId = req.header('user-id'); // In production, get this from auth middleware
-    const fileId = req.params.id;
-    const updates = req.body;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const file = await fileService.updateFile(fileId, userId, updates);
-    res.json(file);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+router.patch('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const fileId = req.params.id;
+  const updates = req.body;
+  
+  if (!userId) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized'
+    };
+    return res.status(401).json(response);
   }
+
+  const response = await fileService.updateFile(fileId, userId, updates);
+  
+  if (!response.success) {
+    return res.status(500).json(response);
+  }
+  
+  res.json(response);
 });
 
 // Delete a file or folder
-router.delete('/:id', async (req, res) => {
-  try {
-    const userId = req.header('user-id'); // In production, get this from auth middleware
-    const fileId = req.params.id;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    await fileService.deleteFile(fileId, userId);
-    res.json({ message: 'File deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.userId;
+  const fileId = req.params.id;
+  
+  if (!userId) {
+    const response: ApiResponse<never> = {
+      success: false,
+      error: 'Unauthorized'
+    };
+    return res.status(401).json(response);
   }
+
+  const response = await fileService.deleteFile(fileId, userId);
+  
+  if (!response.success) {
+    return res.status(500).json(response);
+  }
+  
+  res.json(response);
 });
 
 export default router;

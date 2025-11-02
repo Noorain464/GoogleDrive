@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { authService } from "@/services/authService";
-import type { Session } from '@supabase/supabase-js';
+import { apiService } from "@/services/apiService";
 import DriveSidebar from "@/components/drive/DriveSidebar";
 import DriveHeader from "@/components/drive/DriveHeader";
 import FileGrid from "@/components/drive/FileGrid";
@@ -12,7 +11,7 @@ import { toast } from "sonner";
 const Drive = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<string>("my-drive");
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -22,21 +21,31 @@ const Drive = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = authService.onAuthStateChange(
-      (session) => {
-        setSession(session);
-      }
-    );    // Check for existing session
-    authService.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (!session) {
-        navigate("/auth");
-      }
+    // Check for existing auth
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (!token || !storedUser) {
+      navigate("/auth");
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
+    try {
+      const userData = JSON.parse(storedUser);
+      if (!userData.id || !userData.email) {
+        throw new Error('Invalid user data');
+      }
+      
+      apiService.setToken(token);
+      setUser(userData);
+    } catch (error) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate("/auth");
+    } finally {
+      setLoading(false);
+    }
   }, [navigate]);
 
   // Handle view changes from URL params
@@ -49,11 +58,19 @@ const Drive = () => {
 
   const handleSignOut = async () => {
     try {
-      await authService.signOut();
+      const response = await apiService.logout();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to sign out');
+      }
+      
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      apiService.clearToken();
+      
       toast.success("Signed out successfully");
       navigate("/auth");
     } catch (error: any) {
-      toast.error("Failed to sign out");
+      toast.error(error.message || "Failed to sign out");
     }
   };
 
@@ -65,7 +82,7 @@ const Drive = () => {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return null;
   }
 
@@ -98,7 +115,7 @@ const Drive = () => {
           onSignOut={handleSignOut}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          userEmail={session.user.email || ""}
+          userEmail={user.email || ""}
         />
         <main className="flex-1 overflow-y-auto p-6">
           <FileGrid 

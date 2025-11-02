@@ -4,7 +4,7 @@ import { FileText, Folder, Image, Film, Music, FileSpreadsheet, FileCode, Archiv
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileIcon, FolderIcon } from 'lucide-react';
-import { fileService } from '@/services/fileService';
+import { apiService } from '@/services/apiService';
 import type { File } from '@/services/types';
 
 
@@ -37,19 +37,16 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
     const fetchFiles = async () => {
       try {
         setLoading(true);
-        const { data, error } = await fileService.getFiles({
-          currentFolderId,
-          currentView,
-          searchQuery
-        });
-
-        if (error) {
-          throw error;
+        const response = await apiService.getFiles(currentFolderId);
+        
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to fetch files');
         }
 
-        setFiles(data || []);
+        setFiles(response.data);
       } catch (error) {
         console.error('Error fetching files:', error);
+        setFiles([]);
       } finally {
         setLoading(false);
       }
@@ -278,21 +275,24 @@ const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFol
   };
 
   return (
-    <div className="space-y-6">
-      {currentView === "my-drive" && breadcrumbs.length > 0 && (
-        <div className="flex items-center gap-1 text-sm">
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.id || "root"} className="flex items-center gap-1">
-              {index > 0 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2"
-                onClick={() => onFolderChange(crumb.id)}
-              >
-                {index === 0 && <Home className="h-4 w-4 mr-1" />}
-                {crumb.name}
-              </Button>
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+      {files.map((file) => (
+        <Card
+          key={file.id}
+          className="p-4 hover:bg-accent cursor-pointer"
+          onClick={() => handleItemClick(file)}
+        >
+          <div className="flex items-center gap-3">
+            {file.type === 'folder' ? (
+              <FolderIcon className="h-8 w-8 text-blue-500" />
+            ) : (
+              <FileIcon className="h-8 w-8 text-gray-500" />
+            )}
+            <div>
+              <h3 className="font-medium">{file.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {new Date(file.createdAt).toLocaleDateString()}
+              </p>
             </div>
           ))}
         </div>
