@@ -20,7 +20,8 @@ class ApiService {
       headers['Content-Type'] = 'application/json';
     }
 
-    if (this.token) {
+    if (this.token) {'http://localhost:3000';
+
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
@@ -40,6 +41,7 @@ class ApiService {
     return data as ApiResponse<T>;
   }
   async getFiles(parentId: string | null = null): Promise<ApiResponse<File[]>> {
+    console.log('API_URL:', API_URL);
     const response = await fetch(`${API_URL}/api/files?parentId=${parentId || ''}`, {
       headers: this.getHeaders()
     });

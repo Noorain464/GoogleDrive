@@ -19,6 +19,8 @@ const Drive = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [recentFiles, setRecentFiles] = useState<{ id: string; name: string }[]>([]);
+
 
   useEffect(() => {
     // Check for existing auth
@@ -85,10 +87,22 @@ const Drive = () => {
   if (!user) {
     return null;
   }
-
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
+  const handleRefresh = async () => {
+    setRefreshKey((prev) => prev + 1);
+  
+    try {
+      const response = await apiService.getFiles(); // fetch latest files
+      if (response.success && response.data) {
+        setRecentFiles(response.data.slice(0, 5)); // show latest 5 uploads
+      } else {
+        console.error("Failed to refresh files:", response.error);
+      }
+    } catch (error) {
+      console.error("Error refreshing files:", error);
+    }
   };
+  
+  
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -116,6 +130,8 @@ const Drive = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           userEmail={user.email || ""}
+          recentFiles={recentFiles}
+
         />
         <main className="flex-1 overflow-y-auto p-6">
           <FileGrid 
