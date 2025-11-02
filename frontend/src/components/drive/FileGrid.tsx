@@ -334,7 +334,7 @@ const FileGrid: React.FC<FileGridProps> = ({
       />
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 min-h-[300px]">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 min-h-[300px]">
           {files.map((file) => (
             <FileContextMenu
               key={file.id}
@@ -357,53 +357,54 @@ const FileGrid: React.FC<FileGridProps> = ({
                 onDragOver={file.type === 'folder' ? (e) => handleDragOver(e, file) : undefined}
                 onDragLeave={file.type === 'folder' ? handleDragLeave : undefined}
                 onDrop={file.type === 'folder' ? (e) => handleDrop(e, file) : undefined}
-                className={`p-4 hover:bg-accent cursor-pointer transition-all ${
-                  selectedFiles.has(file.id) ? 'bg-accent border-primary' : ''
+                className={`group p-3 border rounded-lg hover:shadow-md hover:border-gray-300 cursor-pointer transition-all ${
+                  selectedFiles.has(file.id) ? 'bg-blue-50 border-blue-300 shadow-md' : 'bg-white border-gray-200'
                 } ${
-                  dropTarget === file.id ? 'ring-2 ring-primary bg-primary/10' : ''
+                  dropTarget === file.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                 } ${
                   !file.isTrashed ? 'cursor-move' : ''
                 }`}
                 onClick={(e) => handleItemClick(file, e)}
               >
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-center">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-center py-4">
                     {file.type === 'folder' ? (
-                      <FolderIcon className="h-12 w-12 text-blue-500" />
+                      <FolderIcon className="h-10 w-10 text-gray-500" fill="currentColor" fillOpacity="0.2" />
                     ) : (
-                      <FileIcon className="h-12 w-12 text-gray-500" />
+                      <FileIcon className="h-10 w-10 text-gray-400" />
                     )}
                   </div>
-                  <div className="text-center">
-                    <h3 className="font-medium text-sm truncate">{file.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(file.createdAt).toLocaleDateString()}
-                    </p>
-                    {file.size && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(file.size)}
-                      </p>
-                    )}
+                  <div className="px-1">
+                    <h3 className="text-sm text-gray-800 truncate group-hover:text-gray-900">{file.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      {file.size && (
+                        <p className="text-xs text-gray-500">
+                          {formatFileSize(file.size)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Card>
             </FileContextMenu>
           ))}
           {files.length === 0 && (
-            <div className="col-span-full text-center text-muted-foreground py-12">
-              <p className="text-lg">No files found</p>
-              <p className="text-sm mt-2">Upload files or create folders to get started</p>
+            <div className="col-span-full text-center py-20">
+              <FolderIcon className="h-24 w-24 text-gray-300 mx-auto mb-4" />
+              <p className="text-xl text-gray-700 font-medium mb-2">No files or folders</p>
+              <p className="text-sm text-gray-500">Drop files here or use the "New" button to get started</p>
             </div>
           )}
         </div>
       ) : (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
           <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="text-left p-3 font-medium text-sm">Name</th>
-                <th className="text-left p-3 font-medium text-sm">Modified</th>
-                <th className="text-left p-3 font-medium text-sm">File size</th>
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left px-4 py-3 font-medium text-xs text-gray-600 uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-xs text-gray-600 uppercase tracking-wider">Owner</th>
+                <th className="text-left px-4 py-3 font-medium text-xs text-gray-600 uppercase tracking-wider">Last modified</th>
+                <th className="text-left px-4 py-3 font-medium text-xs text-gray-600 uppercase tracking-wider">File size</th>
               </tr>
             </thead>
             <tbody>
@@ -429,39 +430,45 @@ const FileGrid: React.FC<FileGridProps> = ({
                     onDragOver={file.type === 'folder' ? (e) => handleDragOver(e, file) : undefined}
                     onDragLeave={file.type === 'folder' ? handleDragLeave : undefined}
                     onDrop={file.type === 'folder' ? (e) => handleDrop(e, file) : undefined}
-                    className={`border-b hover:bg-accent cursor-pointer transition-colors ${
-                      selectedFiles.has(file.id) ? 'bg-accent' : ''
+                    className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                      selectedFiles.has(file.id) ? 'bg-blue-50' : ''
                     } ${
-                      dropTarget === file.id ? 'ring-2 ring-primary bg-primary/10' : ''
+                      dropTarget === file.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                     } ${
                       !file.isTrashed ? 'cursor-move' : ''
                     }`}
                     onClick={(e) => handleItemClick(file, e)}
                   >
-                    <td className="p-3">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         {file.type === 'folder' ? (
-                          <FolderIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                          <FolderIcon className="h-5 w-5 text-gray-500 flex-shrink-0" fill="currentColor" fillOpacity="0.2" />
                         ) : (
-                          <FileIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <FileIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
                         )}
-                        <span className="truncate">{file.name}</span>
+                        <span className="text-sm text-gray-800 truncate">{file.name}</span>
                       </div>
                     </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {new Date(file.createdAt).toLocaleDateString()}
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      me
                     </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {file.type === 'file' ? formatFileSize(file.size) : '-'}
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {new Date(file.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {file.type === 'file' ? formatFileSize(file.size) : '—'}
                     </td>
                   </tr>
                 </FileContextMenu>
               ))}
               {files.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="text-center text-muted-foreground py-12">
-                    <p className="text-lg">No files found</p>
-                    <p className="text-sm mt-2">Upload files or create folders to get started</p>
+                  <td colSpan={4} className="text-center py-20">
+                    <div className="flex flex-col items-center">
+                      <FolderIcon className="h-24 w-24 text-gray-300 mb-4" />
+                      <p className="text-xl text-gray-700 font-medium mb-2">No files or folders</p>
+                      <p className="text-sm text-gray-500">Drop files here or use the "New" button to get started</p>
+                    </div>
                   </td>
                 </tr>
               )}

@@ -252,7 +252,7 @@ const Drive = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-white">
       <UploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
@@ -281,41 +281,30 @@ const Drive = () => {
         />
 
         {/* Breadcrumb and Controls */}
-        <div className="border-b px-6 py-3">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              {breadcrumbs.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBackClick}
-                  className="mr-2"
-                >
-                  ← Back
-                </Button>
-              )}
-
-              <div className="flex items-center gap-2 flex-wrap">
+        <div className="border-b border-gray-200 bg-white px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 {breadcrumbs.map((item, index) => (
-                  <div key={item.id || 'root'} className="flex items-center gap-2">
+                  <div key={item.id || 'root'} className="flex items-center">
                     {index === 0 ? (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleBreadcrumbClick(index)}
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-2 text-gray-700 hover:bg-gray-100 px-2"
                       >
                         <Home className="w-4 h-4" />
-                        {item.name}
+                        <span className="text-sm">{item.name}</span>
                       </Button>
                     ) : (
                       <>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4 text-gray-400 mx-1" />
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleBreadcrumbClick(index)}
-                          className={index === breadcrumbs.length - 1 ? "font-semibold" : ""}
+                          className={`text-sm px-2 ${index === breadcrumbs.length - 1 ? "font-medium text-gray-900" : "text-gray-700 hover:bg-gray-100"}`}
                         >
                           {item.name}
                         </Button>
@@ -328,51 +317,45 @@ const Drive = () => {
 
             {/* View Controls */}
             <div className="flex items-center gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center border border-gray-300 rounded-md">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('list')}
+                  className={`h-8 w-8 rounded-r-none ${viewMode === 'list' ? 'bg-gray-100' : ''}`}
+                >
+                  <List className="h-4 w-4 text-gray-600" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode('grid')}
+                  className={`h-8 w-8 rounded-l-none border-l border-gray-300 ${viewMode === 'grid' ? 'bg-gray-100' : ''}`}
+                >
+                  <Grid3x3 className="h-4 w-4 text-gray-600" />
+                </Button>
+              </div>
+
               {/* Sort Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ArrowUpDown className="h-4 w-4" />
-                    {sortBy === 'name' && 'Name'}
-                    {sortBy === 'date' && 'Date'}
-                    {sortBy === 'size' && 'Size'}
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ArrowUpDown className="h-4 w-4 text-gray-600" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setSortBy('name')}>
-                    Sort by Name
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setSortBy('name')} className="cursor-pointer">
+                    Name
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('date')}>
-                    Sort by Date
+                  <DropdownMenuItem onClick={() => setSortBy('date')} className="cursor-pointer">
+                    Last modified
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortBy('size')}>
-                    Sort by Size
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={toggleSortOrder}>
-                    {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                  <DropdownMenuItem onClick={() => setSortBy('size')} className="cursor-pointer">
+                    File size
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center border rounded-md">
-                <Button
-                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid3x3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           </div>
 
@@ -392,7 +375,7 @@ const Drive = () => {
         </div>
 
         <div className="flex flex-1 overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-6 bg-white">
             <FileGrid
               key={refreshKey}
               currentView={currentView}

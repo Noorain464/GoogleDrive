@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,54 +74,42 @@ const DriveSidebar = ({
   };
 
   return (
-    <aside className="w-64 bg-white border-r flex flex-col text-gray-800 shadow-sm">
-      {/* Logo + New Button */}
-      <div className="p-5">
-        <div className="flex items-center gap-2 mb-6">
-          {/* ✅ Replaced Cloud icon with your Drive icon */}
-          <div className="flex items-center justify-center rounded-md p-2">
-            <img src="/drive-icon.png" alt="Drive Icon" className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-semibold text-gray-800 tracking-tight">
-            Drive
-          </span>
-        </div>
-
+    <aside className="w-64 bg-white border-r flex flex-col text-gray-800">
+      {/* New Button */}
+      <div className="p-4 pt-5">
         {/* "New" Dropdown Button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className="w-full justify-start bg-white text-gray-800 font-medium py-5 rounded-xl shadow-md border hover:bg-gray-50 transition-all duration-200"
+              className="w-fit justify-start bg-white text-gray-700 font-medium px-4 py-3 rounded-full shadow-md border hover:shadow-lg hover:bg-gray-50 transition-all duration-200"
               size="lg"
             >
-              <Plus className="mr-2 h-5  text-blue-600" />
+              <Plus className="mr-3 h-5 w-5 text-gray-700" />
               New
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48 mt-1 shadow-lg">
+          <DropdownMenuContent align="start" className="w-56 mt-1 shadow-lg">
             <DropdownMenuItem
               onClick={onCreateFolderClick}
-              className="cursor-pointer hover:bg-gray-100"
+              className="cursor-pointer hover:bg-gray-100 py-2.5"
             >
-              <FolderPlus className="mr-2 h-4 w-4 text-gray-700" />
-              <span>New Folder</span>
+              <FolderPlus className="mr-3 h-5 w-5 text-gray-600" />
+              <span>New folder</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={onUploadClick}
-              className="cursor-pointer hover:bg-gray-100"
+              className="cursor-pointer hover:bg-gray-100 py-2.5"
             >
-              <Upload className="mr-2 h-4 w-4 text-gray-700" />
-              <span>Upload Files</span>
+              <Upload className="mr-3 h-5 w-5 text-gray-600" />
+              <span>File upload</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <Separator className="my-2" />
-
       {/* Navigation Menu */}
-      <nav className="flex-1 px-3">
-        <ul className="space-y-1 mt-2">
+      <nav className="flex-1 px-3 mt-4">
+        <ul className="space-y-0.5">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -132,16 +119,16 @@ const DriveSidebar = ({
                 <button
                   onClick={() => onViewChange(item.id)}
                   className={cn(
-                    "flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150",
+                    "flex items-center w-full px-3 py-2.5 rounded-full text-sm font-normal transition-colors duration-150",
                     isActive
-                      ? "bg-blue-100 text-blue-700 font-semibold"
+                      ? "bg-blue-50 text-blue-700 font-medium"
                       : "text-gray-700 hover:bg-gray-100"
                   )}
                 >
                   <Icon
                     className={cn(
-                      "mr-3 h-5 w-5",
-                      isActive ? "text-blue-600" : "text-gray-600"
+                      "mr-4 h-5 w-5",
+                      isActive ? "text-blue-700" : "text-gray-600"
                     )}
                   />
                   {item.label}
