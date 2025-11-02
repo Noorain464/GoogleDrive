@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { fileService } from "@/services/fileService";
+import { authService } from "@/services/authService";
 import { toast } from "sonner";
 
 interface RenameDialogProps {
@@ -41,23 +42,16 @@ const RenameDialog = ({ open, onOpenChange, itemId, itemType, currentName, onRen
     setRenaming(true);
 
     try {
-      const table = itemType === "file" ? "files" : "folders";
-      const { error } = await supabase
-        .from(table)
-        .update({ name: newName.trim() })
-        .eq("id", itemId);
-
+      const { error } = await fileService.renameFile(itemId, newName.trim());
       if (error) throw error;
 
       // Log activity
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await authService.getCurrentUser();
       if (user) {
-        await supabase.from("activities").insert({
+        await fileService.logActivity({
           user_id: user.id,
-          action_type: "rename",
-          item_type: itemType,
-          item_name: newName.trim(),
-          item_id: itemId,
+          file_id: itemId,
+          action: "rename"
         });
       }
 

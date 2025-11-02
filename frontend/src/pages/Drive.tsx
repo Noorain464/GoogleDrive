@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from '@supabase/supabase-js';
+import { authService } from "@/services/authService";
+import type { Session } from '@supabase/supabase-js';
 import DriveSidebar from "@/components/drive/DriveSidebar";
 import DriveHeader from "@/components/drive/DriveHeader";
 import FileGrid from "@/components/drive/FileGrid";
@@ -23,17 +23,12 @@ const Drive = () => {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const { data: { subscription } } = authService.onAuthStateChange(
+      (session) => {
         setSession(session);
-        if (!session) {
-          navigate("/auth");
-        }
       }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    );    // Check for existing session
+    authService.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) {
         navigate("/auth");
@@ -54,7 +49,7 @@ const Drive = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      await authService.signOut();
       toast.success("Signed out successfully");
       navigate("/auth");
     } catch (error: any) {

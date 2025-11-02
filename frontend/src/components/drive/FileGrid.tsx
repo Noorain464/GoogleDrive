@@ -3,30 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { FileText, Folder, Image, Film, Music, FileSpreadsheet, FileCode, Archive, Upload, ChevronRight, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
-import FileContextMenu from "./FileContextMenu";
-import RenameDialog from "./RenameDialog";
-import MoveDialog from "./MoveDialog";
+import { FileIcon, FolderIcon } from 'lucide-react';
+import { fileService } from '@/services/fileService';
+import type { File } from '@/services/types';
 
-interface DriveFile {
-  id: string;
-  name: string;
-  file_type: string | null;
-  file_size: number | null;
-  file_path: string;
-  folder_id: string | null;
-  created_at: string;
-  is_starred: boolean;
-}
 
-interface Folder {
-  id: string;
-  name: string;
-  parent_folder_id: string | null;
-  created_at: string;
-  is_starred: boolean;
-}
 
 interface FileGridProps {
   currentView: string;
@@ -35,9 +16,8 @@ interface FileGridProps {
   searchQuery: string;
 }
 
-const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }: FileGridProps) => {
-  const [files, setFiles] = useState<DriveFile[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
+const FileGrid: React.FC<FileGridProps> = ({ currentView, currentFolderId, onFolderChange, searchQuery }) => {
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; name: string }[]>([]);
   const [renameDialog, setRenameDialog] = useState<{
@@ -54,8 +34,28 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
   }>({ open: false, itemId: null, itemType: "file", itemName: "" });
 
   useEffect(() => {
-    loadContent();
-    loadBreadcrumbs();
+    const fetchFiles = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await fileService.getFiles({
+          currentFolderId,
+          currentView,
+          searchQuery
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        setFiles(data || []);
+      } catch (error) {
+        console.error('Error fetching files:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFiles();
   }, [currentView, currentFolderId, searchQuery]);
 
   const loadBreadcrumbs = async () => {
@@ -268,21 +268,14 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
     );
   }
 
-  if (files.length === 0 && folders.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <Upload className="h-16 w-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No files yet</h3>
-        <p className="text-muted-foreground mb-4">
-          Upload your first file to get started
-        </p>
-        <Button>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Files
-        </Button>
-      </div>
-    );
-  }
+  const handleItemClick = (file: File) => {
+    if (file.type === 'folder') {
+      onFolderChange(file.id);
+    } else {
+      // Handle file click (download, preview, etc.)
+      console.log('File clicked:', file);
+    }
+  };
 
   return (
     <div className="space-y-6">
