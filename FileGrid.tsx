@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import FileContextMenu from "./FileContextMenu";
 import RenameDialog from "./RenameDialog";
+import MoveDialog from "./MoveDialog";
 
 interface DriveFile {
   id: string;
@@ -14,6 +15,7 @@ interface DriveFile {
   file_type: string | null;
   file_size: number | null;
   file_path: string;
+  folder_id: string | null;
   created_at: string;
   is_starred: boolean;
 }
@@ -21,6 +23,7 @@ interface DriveFile {
 interface Folder {
   id: string;
   name: string;
+  parent_folder_id: string | null;
   created_at: string;
   is_starred: boolean;
 }
@@ -43,6 +46,12 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
     itemType: "file" | "folder";
     currentName: string;
   }>({ open: false, itemId: null, itemType: "file", currentName: "" });
+  const [moveDialog, setMoveDialog] = useState<{
+    open: boolean;
+    itemId: string | null;
+    itemType: "file" | "folder";
+    itemName: string;
+  }>({ open: false, itemId: null, itemType: "file", itemName: "" });
 
   useEffect(() => {
     loadContent();
@@ -307,6 +316,23 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
         onRenamed={loadContent}
       />
 
+      <MoveDialog
+        open={moveDialog.open}
+        onOpenChange={(open) =>
+          setMoveDialog({ ...moveDialog, open })
+        }
+        itemId={moveDialog.itemId || ""}
+        itemType={moveDialog.itemType}
+        itemName={moveDialog.itemName}
+        currentFolderId={
+          moveDialog.itemType === "file"
+            ? files.find(f => f.id === moveDialog.itemId)?.folder_id ?? currentFolderId
+            : folders.find(f => f.id === moveDialog.itemId)?.parent_folder_id ?? currentFolderId
+        }
+        excludeFolderId={moveDialog.itemType === "folder" ? moveDialog.itemId || undefined : undefined}
+        onMoveComplete={loadContent}
+      />
+
       {folders.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">Folders</h2>
@@ -326,6 +352,14 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
                     itemId: folder.id,
                     itemType: "folder",
                     currentName: folder.name,
+                  })
+                }
+                onMove={() =>
+                  setMoveDialog({
+                    open: true,
+                    itemId: folder.id,
+                    itemType: "folder",
+                    itemName: folder.name,
                   })
                 }
                 onOpen={() => onFolderChange(folder.id)}
@@ -372,6 +406,14 @@ const FileGrid = ({ currentView, currentFolderId, onFolderChange, searchQuery }:
                       itemId: file.id,
                       itemType: "file",
                       currentName: file.name,
+                    })
+                  }
+                  onMove={() =>
+                    setMoveDialog({
+                      open: true,
+                      itemId: file.id,
+                      itemType: "file",
+                      itemName: file.name,
                     })
                   }
                 >

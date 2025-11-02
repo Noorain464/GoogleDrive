@@ -5,7 +5,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Star, Trash2, Download, Share2, Edit, FolderOpen } from "lucide-react";
+import { Star, Trash2, Download, Share2, Edit, FolderOpen, Folder } from "lucide-react";
 
 interface FileContextMenuProps {
   children: React.ReactNode;
@@ -17,6 +17,7 @@ interface FileContextMenuProps {
   onDownload?: () => void;
   onShare: () => void;
   onRename: () => void;
+  onMove?: () => void;
   onOpen?: () => void;
 }
 
@@ -30,6 +31,7 @@ const FileContextMenu = ({
   onDownload,
   onShare,
   onRename,
+  onMove,
   onOpen,
 }: FileContextMenuProps) => {
   return (
@@ -69,6 +71,12 @@ const FileContextMenu = ({
               <Edit className="mr-2 h-4 w-4" />
               Rename
             </ContextMenuItem>
+            {onMove && (
+              <ContextMenuItem onClick={onMove}>
+                <Folder className="mr-2 h-4 w-4" />
+                Move
+              </ContextMenuItem>
+            )}
           </>
         )}
         
